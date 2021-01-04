@@ -7,12 +7,15 @@ add_compile_options(-std=c++11)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
-  GTSAM
-)
+        roscpp
+        rospy
+        std_msgs
+        )
+
+find_package(GTSAM REQUIRED)
+
 find_package(Boost COMPONENTS thread filesystem date_time system REQUIRED)
 
 ## System dependencies are found with CMake's conventions
@@ -105,10 +108,10 @@ find_package(Boost COMPONENTS thread filesystem date_time system REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES TBLIO
-#  CATKIN_DEPENDS roscpp rospy std_msgs
-#  DEPENDS system_lib
+        #  INCLUDE_DIRS include
+        #  LIBRARIES TBLIO
+        #  CATKIN_DEPENDS roscpp rospy std_msgs
+        #  DEPENDS system_lib
 )
 
 ###########
@@ -118,8 +121,8 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
-  ${catkin_INCLUDE_DIRS}
+        # include
+        ${catkin_INCLUDE_DIRS}
 )
 include_directories("/usr/include/eigen3")
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})

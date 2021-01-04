@@ -2,8 +2,6 @@
 // Created by xcy on 2020/11/22.
 //
 
-
-
 #include "TBLIO.h"
 void TBLIO::imuCallback(const sensor_msgs::ImuConstPtr& imuMsg){
     clock_t startTime, endTime;
@@ -22,20 +20,83 @@ void TBLIO::imuCallback(const sensor_msgs::ImuConstPtr& imuMsg){
     imu_preintegrated_->integrateMeasurement(imu.head<3>(), imu.tail<3>(), dt);
 
     PreintegratedImuMeasurements *preint_imu = dynamic_cast<PreintegratedImuMeasurements*>(imu_preintegrated_);
-    ImuFactor imu_factor(X(correction_count-1), V(correction_count-1),
-                         X(correction_count  ), V(correction_count  ),
-                         B(correction_count-1),
-                         *preint_imu);
-    graph->add(imu_factor);
-    imuBias::ConstantBias zero_bias(Vector3(0, 0, 0), Vector3(0, 0, 0));
-    graph->add(BetweenFactor<imuBias::ConstantBias>(B(correction_count-1),
-                                                    B(correction_count  ),
-                                                    zero_bias, bias_noise_model));
     endTime = clock();//计时结束
     cout << "Imu run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+
+
+    /*IF KEYFRAME*/
+    if(imuMsg->header.seq%100 == 50){
+        correction_count++;
+        ImuFactor imu_factor(X(correction_count-1), V(correction_count-1),
+                             X(correction_count  ), V(correction_count  ),
+                             B(correction_count-1),
+                             *preint_imu);
+        graph->add(imu_factor);
+        imuBias::ConstantBias zero_bias(Vector3(0, 0, 0), Vector3(0, 0, 0));
+        graph->add(BetweenFactor<imuBias::ConstantBias>(B(correction_count-1),
+                                                        B(correction_count  ),
+                                                        zero_bias, bias_noise_model));
+
+
+        noiseModel::Diagonal::shared_ptr correction_noise = noiseModel::Isotropic::Sigma(3,1.0);
+        double x, y, z;
+        Eigen::Matrix<double,7,1> gps = Eigen::Matrix<double,7,1>::Zero();
+        GPSFactor gps_factor(X(correction_count),
+                             Point3(x,  // N,
+                                    y,  // E,
+                                    z), // D,
+                             correction_noise);
+        graph->add(gps_factor);
+
+
+        ROS_INFO("MARKER1");
+        // Now optimize and compare results.
+        prop_state = imu_preintegrated_->predict(prev_state, prev_bias);
+        initial_values.insert(X(correction_count), prop_state.pose());
+        initial_values.insert(V(correction_count), prop_state.v());
+        initial_values.insert(B(correction_count), prev_bias);
+
+        LevenbergMarquardtOptimizer optimizer(*graph, initial_values);
+        ROS_INFO("MARKER1.5");
+        Values result = optimizer.optimize();
+        ROS_INFO("MARKER2");
+
+        // Overwrite the beginning of the preintegration for the next step.
+        prev_state = NavState(result.at<Pose3>(X(correction_count)),
+                              result.at<Vector3>(V(correction_count)));
+        prev_bias = result.at<imuBias::ConstantBias>(B(correction_count));
+
+        // Reset the preintegration object.
+        imu_preintegrated_->resetIntegrationAndSetBias(prev_bias);
+
+        // Print out the position and orientation error for comparison.
+        Vector3 gtsam_position = prev_state.pose().translation();
+        Vector3 position_error = gtsam_position - gps.head<3>();
+        current_position_error = position_error.norm();
+
+        Quaternion gtsam_quat = prev_state.pose().rotation().toQuaternion();
+        Quaternion gps_quat(gps(6), gps(3), gps(4), gps(5));
+        Quaternion quat_error = gtsam_quat * gps_quat.inverse();
+        quat_error.normalize();
+        Vector3 euler_angle_error(quat_error.x()*2,
+                                  quat_error.y()*2,
+                                  quat_error.z()*2);
+        current_orientation_error = euler_angle_error.norm();
+
+        // display statistics
+        cout << "Position error:" << current_position_error << "\t " << "Angular error:" << current_orientation_error << "\n";
+
+        printf("%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
+               output_time, gtsam_position(0), gtsam_position(1), gtsam_position(2),
+               gtsam_quat.x(), gtsam_quat.y(), gtsam_quat.z(), gtsam_quat.w(),
+               gps(0), gps(1), gps(2),
+               gps_quat.x(), gps_quat.y(), gps_quat.z(), gps_quat.w());
+
+        output_time += 1.0;
+    }
 }
 TBLIO::TBLIO(){
-    correction_count = 1;
+    correction_count = 0;
     // Assemble initial quaternion through gtsam constructor ::quaternion(w,x,y,z);
     Eigen::Matrix<double,10,1> initial_state = Eigen::Matrix<double,10,1>::Zero();
     initial_state(6) = 1.0;//Initialize W of Quaternion to 1.
@@ -44,8 +105,7 @@ TBLIO::TBLIO(){
     Pose3 prior_pose(prior_rotation, prior_point);
     Vector3 prior_velocity(initial_state.tail<3>());
     imuBias::ConstantBias prior_imu_bias; // assume zero initial bias
-    Values initial_values;
-    int correction_count = 0;
+
     initial_values.insert(X(correction_count), prior_pose);
     initial_values.insert(V(correction_count), prior_velocity);
     initial_values.insert(B(correction_count), prior_imu_bias);
@@ -81,6 +141,16 @@ TBLIO::TBLIO(){
     p->biasOmegaCovariance = bias_omega_cov; // gyro bias in continuous
     p->biasAccOmegaInt = bias_acc_omega_int;
     imu_preintegrated_ = new PreintegratedImuMeasurements(p, prior_imu_bias);
+
+    // Store previous state for the imu integration and the latest predicted outcome.
+    NavState prev_state(prior_pose, prior_velocity);
+    prop_state = prev_state;
+    prev_bias = prior_imu_bias;
+
+    // Keep track of the total error over the entire run for a simple performance metric.
+    double current_position_error = 0.0, current_orientation_error = 0.0;
+
+    double output_time = 0.0;
 
     imuSub = nh_.subscribe("imu/data_raw", 1000, &TBLIO::imuCallback, this);
     ros::spin();

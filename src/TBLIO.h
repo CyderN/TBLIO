@@ -42,6 +42,17 @@ private:
     noiseModel::Diagonal::shared_ptr velocity_noise_model;
     noiseModel::Diagonal::shared_ptr bias_noise_model;
 
+    NavState prev_state;
+    NavState prop_state;
+    imuBias::ConstantBias prev_bias;
+
+    Values initial_values;
+
+    // Keep track of the total error over the entire run for a simple performance metric.
+    double current_position_error;
+    double current_orientation_error;
+    double output_time;
+
 public:
     TBLIO();
 };
