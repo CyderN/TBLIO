@@ -79,10 +79,10 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
     cout << "Position error:" << current_position_error << "\t " << "Angular error:" << current_orientation_error << "\n";
 
     ROS_WARN("%f,\n%f,%f,%f,\n%f,%f,%f,%f,\n%f,%f,%f,\n%f,%f,%f,%f\n",
-           output_time, gtsam_position(0), gtsam_position(1), gtsam_position(2),
-           gtsam_quat.x(), gtsam_quat.y(), gtsam_quat.z(), gtsam_quat.w(),
-           gps(0), gps(1), gps(2),
-           gps_quat.x(), gps_quat.y(), gps_quat.z(), gps_quat.w());
+             output_time, gtsam_position(0), gtsam_position(1), gtsam_position(2),
+             gtsam_quat.x(), gtsam_quat.y(), gtsam_quat.z(), gtsam_quat.w(),
+             gps(0), gps(1), gps(2),
+             gps_quat.x(), gps_quat.y(), gps_quat.z(), gps_quat.w());
 
     output_time += 1.0;
 
