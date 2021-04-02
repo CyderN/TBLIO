@@ -20,6 +20,7 @@
 
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
+#include <geometry_msgs/PoseStamped.h>
 
 
 using namespace gtsam;
@@ -33,7 +34,9 @@ class TBLIO {
 private:
     ros::NodeHandle nh_;
     ros::Subscriber imuSub;
-    void imuCallback(const sensor_msgs::ImuConstPtr& imuMsg);
+    ros::Subscriber poseSub;
+    void imuCallback(const sensor_msgs::ImuConstPtr& poseMsg);
+    void poseCallback(const geometry_msgs::PoseStampedPtr & imuMsg);
 
     PreintegrationType *imu_preintegrated_;
     int correction_count;
@@ -52,6 +55,7 @@ private:
     double current_position_error;
     double current_orientation_error;
     double output_time;
+    int dt;
 
 public:
     TBLIO();
