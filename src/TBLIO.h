@@ -22,8 +22,6 @@
 #include <sensor_msgs/Imu.h>
 #include <geometry_msgs/PoseStamped.h>
 
-#include <sensor_msgs/PointCloud2.h>
-
 
 using namespace gtsam;
 using namespace std;
@@ -38,16 +36,16 @@ private:
     ros::Subscriber imuSub;
     ros::Subscriber poseSub;
     void imuCallback(const sensor_msgs::ImuConstPtr& poseMsg);
-    //void poseCallback(const geometry_msgs::PoseStampedPtr & imuMsg);
-    void poseCallback(const sensor_msgs::PointCloud2::ConstPtr & imuMsg);
+    void poseCallback(const geometry_msgs::PoseStampedPtr & imuMsg);
 
     PreintegrationType *imu_preintegrated_;
     int correction_count;
     NonlinearFactorGraph *graph;
-    boost::shared_ptr<PreintegratedCombinedMeasurements::Params> p;
     noiseModel::Diagonal::shared_ptr pose_noise_model;
     noiseModel::Diagonal::shared_ptr velocity_noise_model;
     noiseModel::Diagonal::shared_ptr bias_noise_model;
+
+    boost::shared_ptr<PreintegratedCombinedMeasurements::Params> p;
 
     NavState prev_state;
     NavState prop_state;
@@ -59,8 +57,8 @@ private:
     double current_position_error;
     double current_orientation_error;
     double output_time;
-    int dt;
-
+    double dt;
+    bool imuEmpty;
 public:
     TBLIO();
 };
