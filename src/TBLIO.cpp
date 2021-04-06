@@ -4,7 +4,10 @@
 
 #include "TBLIO.h"
 
-void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
+
+
+//void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
+void TBLIO::poseCallback(const sensor_msgs::PointCloud2::ConstPtr & imuMsg){
     /*IF KEYFRAME*/
     correction_count++;
     PreintegratedImuMeasurements& preint_imu = dynamic_cast<PreintegratedImuMeasurements&>(*imu_preintegrated_);
@@ -22,9 +25,14 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
     noiseModel::Diagonal::shared_ptr correction_noise = noiseModel::Isotropic::Sigma(3,1.0);
     double x, y, z;
 
-    x = poseMsg->pose.position.x;
-    y = -poseMsg->pose.position.y;
-    z = -poseMsg->pose.position.z;
+//    x = poseMsg->pose.position.x;
+//    y = -poseMsg->pose.position.y;
+//    z = -poseMsg->pose.position.z;
+
+    //fake xyz
+    x = 0;
+    y = 0;
+    z = 0;
 
     Eigen::Matrix<double,7,1> gps = Eigen::Matrix<double,7,1>::Zero();
     gps(0) = x;
@@ -89,7 +97,6 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
 }
 
 void TBLIO::imuCallback(const sensor_msgs::ImuConstPtr& imuMsg){
-
     //linAccN, linAccE, linAccD, angVelN, angVelE, angVelD
     Eigen::Matrix<double,6,1> imu = Eigen::Matrix<double,6,1>::Zero();
     imu(0) = imuMsg->linear_acceleration.x;
@@ -99,9 +106,9 @@ void TBLIO::imuCallback(const sensor_msgs::ImuConstPtr& imuMsg){
     imu(4) = -imuMsg->angular_velocity.y;
     imu(5) = -imuMsg->angular_velocity.z;
 
-    imu(0) = 0.00001;
+    imu(0) = 0.0;
     imu(1) = 0.0;
-    imu(2) = -9.805;
+    imu(2) = -9.81;
     imu(3) = 0.0;
     imu(4) = 0.0;
     imu(5) = 0.0;
@@ -153,7 +160,7 @@ TBLIO::TBLIO(){
     Matrix33 bias_acc_cov = Matrix33::Identity(3,3) * pow(accel_bias_rw_sigma,2);
     Matrix33 bias_omega_cov = Matrix33::Identity(3,3) * pow(gyro_bias_rw_sigma,2);
     Matrix66 bias_acc_omega_int = Matrix::Identity(6,6)*1e-5; // error in the bias used for preintegration
-    boost::shared_ptr<PreintegratedCombinedMeasurements::Params> p = PreintegratedCombinedMeasurements::Params::MakeSharedD(9.805);
+    p = PreintegratedCombinedMeasurements::Params::MakeSharedD(9.81);
     // PreintegrationBase params:
     p->accelerometerCovariance = measured_acc_cov; // acc white noise in continuous
     p->integrationCovariance = integration_error_cov; // integration uncertainty continuous
@@ -167,17 +174,18 @@ TBLIO::TBLIO(){
     imu_preintegrated_ = new PreintegratedImuMeasurements(p, prior_imu_bias);
 
     // Store previous state for the imu integration and the latest predicted outcome.
-    NavState prev_state(prior_pose, prior_velocity);
+    prev_state = NavState(prior_pose, prior_velocity);
     prop_state = prev_state;
     prev_bias = prior_imu_bias;
 
     // Keep track of the total error over the entire run for a simple performance metric.
-    double current_position_error = 0.0, current_orientation_error = 0.0;
+    current_position_error = 0.0, current_orientation_error = 0.0;
 
-    double output_time = 0.0;
-    int dt = 0.01; //IMU at 100Hz
+    output_time = 0.0;
+    dt = 0.01; //IMU at 100Hz
 
     imuSub = nh_.subscribe("imu/data_raw", 1, &TBLIO::imuCallback, this);
-    poseSub = nh_.subscribe("my_pose", 1, &TBLIO::poseCallback, this);
+    //poseSub = nh_.subscribe("my_pose", 1, &TBLIO::poseCallback, this);
+    poseSub = nh_.subscribe("velodyne_points", 1, &TBLIO::poseCallback, this);
     ros::spin();
 }
