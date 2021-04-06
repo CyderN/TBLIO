@@ -22,6 +22,8 @@
 #include <sensor_msgs/Imu.h>
 #include <geometry_msgs/PoseStamped.h>
 
+#include <tf_conversions/tf_eigen.h>
+
 
 using namespace gtsam;
 using namespace std;
@@ -35,6 +37,7 @@ private:
     ros::NodeHandle nh_;
     ros::Subscriber imuSub;
     ros::Subscriber poseSub;
+    ros::Publisher imuPosePublisher;
     void imuCallback(const sensor_msgs::ImuConstPtr& poseMsg);
     void poseCallback(const geometry_msgs::PoseStampedPtr & imuMsg);
 

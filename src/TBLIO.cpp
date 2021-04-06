@@ -87,6 +87,16 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
 
     output_time += 1.0;
     imuEmpty = true;
+
+
+    geometry_msgs::PoseStamped my_pose;
+    my_pose.header = poseMsg->header;
+    my_pose.pose.position.x = gtsam_position(0);
+    my_pose.pose.position.y = -gtsam_position(1);
+    my_pose.pose.position.z = -gtsam_position(2);
+    tf::quaternionTFToMsg(tf::Quaternion(gtsam_quat.x(), gtsam_quat.y(), gtsam_quat.z(), gtsam_quat.w()),
+                          my_pose.pose.orientation);
+    imuPosePublisher.publish(my_pose);
 }
 
 void TBLIO::imuCallback(const sensor_msgs::ImuConstPtr& imuMsg){
@@ -156,7 +166,7 @@ TBLIO::TBLIO(){
     Matrix33 bias_acc_cov = Matrix33::Identity(3,3) * pow(accel_bias_rw_sigma,2);
     Matrix33 bias_omega_cov = Matrix33::Identity(3,3) * pow(gyro_bias_rw_sigma,2);
     Matrix66 bias_acc_omega_int = Matrix::Identity(6,6)*1e-5; // error in the bias used for preintegration
-    p = PreintegratedCombinedMeasurements::Params::MakeSharedD(9.805);
+    p = PreintegratedCombinedMeasurements::Params::MakeSharedD(9.9);
     // PreintegrationBase params:
     p->accelerometerCovariance = measured_acc_cov; // acc white noise in continuous
     p->integrationCovariance = integration_error_cov; // integration uncertainty continuous
@@ -183,5 +193,6 @@ TBLIO::TBLIO(){
 
     imuSub = nh_.subscribe("imu/data_raw", 1, &TBLIO::imuCallback, this);
     poseSub = nh_.subscribe("my_pose", 1, &TBLIO::poseCallback, this);
+    imuPosePublisher = nh_.advertise<geometry_msgs::PoseStamped>("imu_pose", 100);
     ros::spin();
 }
