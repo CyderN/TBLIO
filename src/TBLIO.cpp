@@ -20,7 +20,7 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
                                                     zero_bias, bias_noise_model));
 
 
-    noiseModel::Diagonal::shared_ptr correction_noise = noiseModel::Isotropic::Sigma(3,1.0);
+    noiseModel::Diagonal::shared_ptr correction_noise = noiseModel::Isotropic::Sigma(3,0.2);
     double x, y, z;
 
     x = poseMsg->pose.position.x;
@@ -34,9 +34,9 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
     gps(6) = 1.0;// Set quaternion xyzw to 0 0 0 1
 
     GPSFactor gps_factor(X(correction_count),
-                         Point3(x,  // N,
-                                y,  // E,
-                                z), // D,
+                         Point3(x,  // E,
+                                y,  // N,
+                                z), // U,
                          correction_noise);
     graph->add(gps_factor);
 
@@ -94,8 +94,13 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
     my_pose.pose.position.x = gtsam_position(0);
     my_pose.pose.position.y = -gtsam_position(1);
     my_pose.pose.position.z = -gtsam_position(2);
-    tf::quaternionTFToMsg(tf::Quaternion(gtsam_quat.x(), gtsam_quat.y(), gtsam_quat.z(), gtsam_quat.w()),
-                          my_pose.pose.orientation);
+
+    tf::Quaternion tempq(gtsam_quat.x(), gtsam_quat.y(), gtsam_quat.z(), gtsam_quat.w());
+    double roll,pitch,yaw;
+    tf::Matrix3x3(tempq).getRPY(roll, pitch, yaw);
+    tempq = tf::createQuaternionFromRPY(roll, -pitch, -yaw);
+
+    tf::quaternionTFToMsg(tempq, my_pose.pose.orientation);
     imuPosePublisher.publish(my_pose);
 }
 
@@ -147,8 +152,8 @@ TBLIO::TBLIO(){
     initial_values.insert(V(correction_count), prior_velocity);
     initial_values.insert(B(correction_count), prior_imu_bias);
     // Assemble prior noise model and add it the graph.
-    pose_noise_model = noiseModel::Diagonal::Sigmas((Vector(6) << 0.01, 0.01, 0.01, 0.5, 0.5, 0.5).finished()); // rad,rad,rad,m, m, m
-    velocity_noise_model = noiseModel::Isotropic::Sigma(3,0.1); // m/s
+    pose_noise_model = noiseModel::Diagonal::Sigmas((Vector(6) << 0.01, 0.01, 0.01, 0.01, 0.01, 0.01).finished()); // rad,rad,rad,m, m, m
+    velocity_noise_model = noiseModel::Isotropic::Sigma(3,1e4); // m/s
     bias_noise_model = noiseModel::Isotropic::Sigma(6,1e-3);
     // Add all prior factors (pose, velocity, bias) to the graph.
     graph = new NonlinearFactorGraph();
@@ -158,7 +163,7 @@ TBLIO::TBLIO(){
     // We use the sensor specs to build the noise model for the IMU factor.
     double accel_noise_sigma = 0.01;
     double gyro_noise_sigma = 0.001;
-    double accel_bias_rw_sigma = 0.002;
+    double accel_bias_rw_sigma = 0.00006;
     double gyro_bias_rw_sigma = 0.00003;
     Matrix33 measured_acc_cov = Matrix33::Identity(3,3) * pow(accel_noise_sigma,2);
     Matrix33 measured_omega_cov = Matrix33::Identity(3,3) * pow(gyro_noise_sigma,2);
@@ -166,7 +171,7 @@ TBLIO::TBLIO(){
     Matrix33 bias_acc_cov = Matrix33::Identity(3,3) * pow(accel_bias_rw_sigma,2);
     Matrix33 bias_omega_cov = Matrix33::Identity(3,3) * pow(gyro_bias_rw_sigma,2);
     Matrix66 bias_acc_omega_int = Matrix::Identity(6,6)*1e-5; // error in the bias used for preintegration
-    p = PreintegratedCombinedMeasurements::Params::MakeSharedD(9.9);
+    p = PreintegratedCombinedMeasurements::Params::MakeSharedD(9.805);
     // PreintegrationBase params:
     p->accelerometerCovariance = measured_acc_cov; // acc white noise in continuous
     p->integrationCovariance = integration_error_cov; // integration uncertainty continuous
