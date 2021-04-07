@@ -61,9 +61,11 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
     startTime = clock();//计时开始
     optimizer.update(*graph,initial_values);
     optimizer.update();
+    gtsam::Values result = optimizer.calculateEstimate();
+    ofstream os("Pose2SLAMExample.dot");
+    graph->saveGraph(os, result);
     graph->resize(0);
     initial_values.clear();
-    gtsam::Values result = optimizer.calculateEstimate();
     endTime = clock();//计时结束
     cout << "Optimization run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
     ROS_INFO("End Optimization");
@@ -101,7 +103,6 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
 
     output_time += 1.0;
     imuEmpty = true;
-
 
     geometry_msgs::PoseStamped my_pose;
     my_pose.header = poseMsg->header;
