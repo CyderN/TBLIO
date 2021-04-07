@@ -19,6 +19,7 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
                                                     B(correction_count  ),
                                                     zero_bias, bias_noise_model));
 
+
     noiseModel::Diagonal::shared_ptr correction_noise =
             noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 0.05, 0.05, 0.05, 0.1, 0.1, 0.1).finished());
     double x, y, z, qx, qy, qz, qw;
@@ -32,12 +33,11 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
     tf::quaternionMsgToTF(poseMsg->pose.orientation, tempq2);
     double roll,pitch,yaw;
     tf::Matrix3x3(tempq2).getRPY(roll, pitch, yaw);
-    tempq2 = tf::createQuaternionFromRPY(roll + M_PI, -pitch, -yaw);
+    tempq2 = tf::createQuaternionFromRPY(roll, -pitch, -yaw);
     qx = tempq2.getX();
     qy = tempq2.getY();
     qz = tempq2.getZ();
     qw = tempq2.getW();
-
 
     Eigen::Matrix<double,7,1> lidarPose = Eigen::Matrix<double,7,1>::Zero();
     lidarPose(0) = x;
@@ -50,7 +50,6 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
     PriorFactor<Pose3> poseFactor(X(correction_count),
                                   gtsam::Pose3(Rot3(qw,qx,qy,qz), Point3(x,y,z)), correction_noise);
     graph->add(poseFactor);
-
     // Now optimize and compare results.
     prop_state = imu_preintegrated_->predict(prev_state, prev_bias);
     initial_values.insert(X(correction_count), prop_state.pose());
@@ -108,7 +107,7 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
 
     tf::Quaternion tempq(gtsam_quat.x(), gtsam_quat.y(), gtsam_quat.z(), gtsam_quat.w());
     tf::Matrix3x3(tempq).getRPY(roll, pitch, yaw);
-    tempq = tf::createQuaternionFromRPY(roll - M_PI, -pitch, -yaw);
+    tempq = tf::createQuaternionFromRPY(roll, -pitch, -yaw);
 
     tf::quaternionTFToMsg(tempq, my_pose.pose.orientation);
     imuPosePublisher.publish(my_pose);
@@ -150,8 +149,7 @@ TBLIO::TBLIO(){
     initial_state(1) = 0.0;
     initial_state(2) = 0.0;
 
-    initial_state(3) = 1.0;
-    //initial_state(6) = 1.0;//Initialize W of Quaternion to 1.
+    initial_state(6) = 1.0;//Initialize W of Quaternion to 1.
     Rot3 prior_rotation = Rot3::Quaternion(initial_state(6), initial_state(3), initial_state(4), initial_state(5));
     Point3 prior_point(initial_state.head<3>());
     Pose3 prior_pose(prior_rotation, prior_point);
