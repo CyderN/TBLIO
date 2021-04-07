@@ -19,26 +19,37 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
                                                     B(correction_count  ),
                                                     zero_bias, bias_noise_model));
 
-
-    noiseModel::Diagonal::shared_ptr correction_noise = noiseModel::Isotropic::Sigma(3,0.2);
-    double x, y, z;
+    noiseModel::Diagonal::shared_ptr correction_noise =
+            noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 0.05, 0.05, 0.05, 0.1, 0.1, 0.1).finished());
+    double x, y, z, qx, qy, qz, qw;
 
     x = poseMsg->pose.position.x;
     y = -poseMsg->pose.position.y;
     z = -poseMsg->pose.position.z;
 
-    Eigen::Matrix<double,7,1> gps = Eigen::Matrix<double,7,1>::Zero();
-    gps(0) = x;
-    gps(1) = y;
-    gps(2) = z;
-    gps(6) = 1.0;// Set quaternion xyzw to 0 0 0 1
 
-    GPSFactor gps_factor(X(correction_count),
-                         Point3(x,  // E,
-                                y,  // N,
-                                z), // U,
-                         correction_noise);
-    graph->add(gps_factor);
+    tf::Quaternion tempq2;
+    tf::quaternionMsgToTF(poseMsg->pose.orientation, tempq2);
+    double roll,pitch,yaw;
+    tf::Matrix3x3(tempq2).getRPY(roll, pitch, yaw);
+    tempq2 = tf::createQuaternionFromRPY(roll + M_PI, -pitch, -yaw);
+    qx = tempq2.getX();
+    qy = tempq2.getY();
+    qz = tempq2.getZ();
+    qw = tempq2.getW();
+
+
+    Eigen::Matrix<double,7,1> lidarPose = Eigen::Matrix<double,7,1>::Zero();
+    lidarPose(0) = x;
+    lidarPose(1) = y;
+    lidarPose(2) = z;
+    lidarPose(3) = qx;
+    lidarPose(4) = qy;
+    lidarPose(5) = qz;
+    lidarPose(6) = qw;
+    PriorFactor<Pose3> poseFactor(X(correction_count),
+                                  gtsam::Pose3(Rot3(qw,qx,qy,qz), Point3(x,y,z)), correction_noise);
+    graph->add(poseFactor);
 
     // Now optimize and compare results.
     prop_state = imu_preintegrated_->predict(prev_state, prev_bias);
@@ -64,11 +75,11 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
 
     // Print out the position and orientation error for comparison.
     Vector3 gtsam_position = prev_state.pose().translation();
-    Vector3 position_error = gtsam_position - gps.head<3>();
+    Vector3 position_error = gtsam_position - lidarPose.head<3>();
     current_position_error = position_error.norm();
 
     Quaternion gtsam_quat = prev_state.pose().rotation().toQuaternion();
-    Quaternion gps_quat(gps(6), gps(3), gps(4), gps(5));
+    Quaternion gps_quat(lidarPose(6), lidarPose(3), lidarPose(4), lidarPose(5));
     Quaternion quat_error = gtsam_quat * gps_quat.inverse();
     quat_error.normalize();
     Vector3 euler_angle_error(quat_error.x()*2,
@@ -82,7 +93,7 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
     ROS_WARN("%f,\n%f,%f,%f,\n%f,%f,%f,%f,\n%f,%f,%f,\n%f,%f,%f,%f\n",
              output_time, gtsam_position(0), gtsam_position(1), gtsam_position(2),
              gtsam_quat.x(), gtsam_quat.y(), gtsam_quat.z(), gtsam_quat.w(),
-             gps(0), gps(1), gps(2),
+             lidarPose(0), lidarPose(1), lidarPose(2),
              gps_quat.x(), gps_quat.y(), gps_quat.z(), gps_quat.w());
 
     output_time += 1.0;
@@ -96,9 +107,8 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
     my_pose.pose.position.z = -gtsam_position(2);
 
     tf::Quaternion tempq(gtsam_quat.x(), gtsam_quat.y(), gtsam_quat.z(), gtsam_quat.w());
-    double roll,pitch,yaw;
     tf::Matrix3x3(tempq).getRPY(roll, pitch, yaw);
-    tempq = tf::createQuaternionFromRPY(roll, -pitch, -yaw);
+    tempq = tf::createQuaternionFromRPY(roll - M_PI, -pitch, -yaw);
 
     tf::quaternionTFToMsg(tempq, my_pose.pose.orientation);
     imuPosePublisher.publish(my_pose);
@@ -140,7 +150,8 @@ TBLIO::TBLIO(){
     initial_state(1) = 0.0;
     initial_state(2) = 0.0;
 
-    initial_state(6) = 1.0;//Initialize W of Quaternion to 1.
+    initial_state(3) = 1.0;
+    //initial_state(6) = 1.0;//Initialize W of Quaternion to 1.
     Rot3 prior_rotation = Rot3::Quaternion(initial_state(6), initial_state(3), initial_state(4), initial_state(5));
     Point3 prior_point(initial_state.head<3>());
     Pose3 prior_pose(prior_rotation, prior_point);
