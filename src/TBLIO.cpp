@@ -55,11 +55,15 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
     initial_values.insert(X(correction_count), prop_state.pose());
     initial_values.insert(V(correction_count), prop_state.v());
     initial_values.insert(B(correction_count), prev_bias);
-    LevenbergMarquardtOptimizer optimizer(*graph, initial_values);
+    //LevenbergMarquardtOptimizer optimizer(*graph, initial_values);
     ROS_INFO("Start Optimization");
     clock_t startTime, endTime;
     startTime = clock();//计时开始
-    Values result = optimizer.optimize();
+    optimizer.update(*graph,initial_values);
+    optimizer.update();
+    graph->resize(0);
+    initial_values.clear();
+    gtsam::Values result = optimizer.calculateEstimate();
     endTime = clock();//计时结束
     cout << "Optimization run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
     ROS_INFO("End Optimization");
@@ -136,6 +140,21 @@ void TBLIO::imuCallback(const sensor_msgs::ImuConstPtr& imuMsg){
     imuEmpty = false;
 
     //Old if is here
+}
+
+
+void TBLIO::resetOptimization()
+{
+    gtsam::ISAM2Params optParameters;
+    optParameters.relinearizeThreshold = 0.1;
+    optParameters.relinearizeSkip = 1;
+    optimizer = gtsam::ISAM2(optParameters);
+
+    gtsam::NonlinearFactorGraph newGraphFactors;
+    *graph = newGraphFactors;
+
+    gtsam::Values NewGraphValues;
+    initial_values = NewGraphValues;
 }
 
 TBLIO::TBLIO(){

@@ -14,6 +14,8 @@
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/inference/Symbol.h>
+#include <gtsam/nonlinear/ISAM2.h>
+
 
 #include <fstream>
 #include <iostream>
@@ -62,6 +64,11 @@ private:
     double output_time;
     double dt;
     bool imuEmpty;
+
+    ISAM2 optimizer;
+    void resetOptimization();
+
+
 public:
     TBLIO();
 };
