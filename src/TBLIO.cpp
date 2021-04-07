@@ -116,6 +116,10 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
 
     tf::quaternionTFToMsg(tempq, my_pose.pose.orientation);
     imuPosePublisher.publish(my_pose);
+
+    robotPath.header = poseMsg->header;
+    robotPath.poses.push_back(my_pose);
+    path_pub.publish(robotPath);
 }
 
 void TBLIO::imuCallback(const sensor_msgs::ImuConstPtr& imuMsg){
@@ -228,5 +232,6 @@ TBLIO::TBLIO(){
     imuSub = nh_.subscribe("imu/data_raw", 1, &TBLIO::imuCallback, this);
     poseSub = nh_.subscribe("my_pose", 1, &TBLIO::poseCallback, this);
     imuPosePublisher = nh_.advertise<geometry_msgs::PoseStamped>("imu_pose", 100);
+    path_pub = nh_.advertise<nav_msgs::Path>("IMU_trajectory",1, true);
     ros::spin();
 }

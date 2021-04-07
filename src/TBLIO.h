@@ -15,6 +15,7 @@
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/inference/Symbol.h>
 #include <gtsam/nonlinear/ISAM2.h>
+#include <nav_msgs/Path.h>
 
 
 #include <fstream>
@@ -67,7 +68,8 @@ private:
 
     ISAM2 optimizer;
     void resetOptimization();
-
+    nav_msgs::Path robotPath;
+    ros::Publisher path_pub;
 
 public:
     TBLIO();
