@@ -204,7 +204,7 @@ TBLIO::TBLIO(){
     Matrix33 bias_acc_cov = Matrix33::Identity(3,3) * pow(accel_bias_rw_sigma,2);
     Matrix33 bias_omega_cov = Matrix33::Identity(3,3) * pow(gyro_bias_rw_sigma,2);
     Matrix66 bias_acc_omega_int = Matrix::Identity(6,6)*1e-5; // error in the bias used for preintegration
-    p = PreintegratedCombinedMeasurements::Params::MakeSharedD(9.805);
+    p = PreintegratedCombinedMeasurements::Params::MakeSharedD(10.0);
     // PreintegrationBase params:
     p->accelerometerCovariance = measured_acc_cov; // acc white noise in continuous
     p->integrationCovariance = integration_error_cov; // integration uncertainty continuous
@@ -231,7 +231,7 @@ TBLIO::TBLIO(){
 
     imuSub = nh_.subscribe("imu/data_raw", 1, &TBLIO::imuCallback, this);
     poseSub = nh_.subscribe("my_pose", 1, &TBLIO::poseCallback, this);
-    imuPosePublisher = nh_.advertise<geometry_msgs::PoseStamped>("imu_pose", 100);
+    imuPosePublisher = nh_.advertise<geometry_msgs::PoseStamped>("imu_pose", 1);
     path_pub = nh_.advertise<nav_msgs::Path>("IMU_trajectory",1, true);
     ros::spin();
 }
