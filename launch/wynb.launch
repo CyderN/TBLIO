@@ -1,6 +1,6 @@
 <launch>
   <!--param name="use_sim_time" value="true" /-->
-  <node name="treeCenterLocalization" pkg="dbscan" type="treeCenterLocalization_node">
+  <node name="treeCenterLocalization" pkg="TBLIO" type="LO_node">
     <param name="laser_name" type="string" value="/velodyne_TSLAM"/>
     <param name="base_link_name" type="string" value="/base_TSLAM"/>
     <param name="odom_name" type="string" value="/odom_TSLAM"/>
@@ -20,15 +20,11 @@
     <param name="removalBeginTime" type="double" value="10.0"/>
   </node>
 
-  <node name="tree_cluster3d" pkg="dbscan" type="dbscan3d" output= "screen" >
+  <node name="tree_cluster3d" pkg="TBLIO" type="TBLIO_SLAM" output= "screen" >
 
-      <!-- No use parameter from 2d dbscan-->
-      <param name="scan_number_360" type="double" value="1080.0"/>
-      <param name="scan_range" type="double" value="8.0"/>
 
       <!-- Topic Name-->
       <param name="laser_name" type="string" value="/velodyne_TSLAM"/>
-      <param name="tree_point" type="string" value="/tree_pt"/>
       <param name="scan_topic_name" type="string" value="/velodyne_points"/>
 
       <!-- No use Pointcloud's Filter-->
