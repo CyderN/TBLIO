@@ -47,7 +47,13 @@ target_link_libraries(TBLIO_node
         ${catkin_LIBRARIES}
         )
 
-#add_executable(dbscan3d src/dbscan3d.cpp src/kd_tree_nn.cpp src/kd_tree_nn.h src/octree_nn.cpp src/octree_nn.h src/kmeans.cpp src/kmeans.h src/gmm_EM.cpp src/gmm_EM.h src/spectral_clustering.cpp src/spectral_clustering.h src/dbscan_clustering.cpp src/dbscan_clustering.h)
+
+add_library(LO src/treeCenterLocalization.cpp src/octree_nn.cpp src/octree_nn.h)
+target_link_libraries( LO ${CERES_LIBRARIES} )
+add_dependencies(LO ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(LO ${catkin_LIBRARIES})
+target_link_libraries(LO ${Boost_LIBRARIES} -lgtsam -ltbb)
+
 ADD_EXECUTABLE(TBLIO_SLAM src/dbscan3d.cpp
         src/octree_nn.cpp src/octree_nn.h
         src/groundRemovalRANSAC.cpp src/groundRemovalRANSAC.h
@@ -56,12 +62,10 @@ target_link_libraries( TBLIO_SLAM ${CERES_LIBRARIES} )
 add_dependencies(TBLIO_SLAM ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(TBLIO_SLAM ${catkin_LIBRARIES})
 
-add_library(LO src/treeCenterLocalization.cpp src/octree_nn.cpp src/octree_nn.h)
-target_link_libraries( LO ${CERES_LIBRARIES} )
-target_link_libraries( LO dlib::dlib )
-
-add_executable(LO_node src/treeCenterLocalization_node.cpp)
+add_executable(LO_node src/treeCenterLocalization_node.cpp src/TBLIO.cpp src/TBLIO.h)
+add_dependencies(LO_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(LO_node treeCenterLocalization)
-add_dependencies(LO ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(LO ${catkin_LIBRARIES})
+target_link_libraries(LO_node ${Boost_LIBRARIES} -lgtsam -ltbb)
+target_link_libraries(LO_node ${catkin_LIBRARIES})
+
 

@@ -37,7 +37,7 @@ using symbol_shorthand::B; // Bias  (ax,ay,az,gx,gy,gz)
 
 class TBLIO {
 private:
-    ros::NodeHandle nh_;
+    ros::NodeHandle* nh_;
     ros::Subscriber imuSub;
     ros::Subscriber poseSub;
     ros::Publisher imuPosePublisher;
@@ -72,7 +72,7 @@ private:
     ros::Publisher path_pub;
 
 public:
-    TBLIO();
+    TBLIO(ros::NodeHandle* nh);
 };
 
 

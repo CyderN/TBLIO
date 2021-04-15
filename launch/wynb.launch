@@ -57,6 +57,6 @@
 
     </node>
 
-    <node name="TBLIO_node" pkg="TBLIO" type="TBLIO_node" output="screen"/>
+<!--     <node name="TBLIO_node" pkg="TBLIO" type="TBLIO_node" output="screen"/> -->
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find dbscan)/rviz/localization.rviz" required="true" />
 </launch>

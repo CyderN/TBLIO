@@ -162,7 +162,8 @@ void TBLIO::resetOptimization()
     initial_values = NewGraphValues;
 }
 
-TBLIO::TBLIO(){
+TBLIO::TBLIO(ros::NodeHandle* nh){
+    nh_= nh;
     imuEmpty = true;
 
     // Assemble initial quaternion through gtsam constructor ::quaternion(w,x,y,z);
@@ -229,9 +230,9 @@ TBLIO::TBLIO(){
     output_time = 0.0;
     dt = 0.01; //IMU at 100Hz
 
-    imuSub = nh_.subscribe("imu/data_raw", 1, &TBLIO::imuCallback, this);
-    poseSub = nh_.subscribe("my_pose", 1, &TBLIO::poseCallback, this);
-    imuPosePublisher = nh_.advertise<geometry_msgs::PoseStamped>("imu_pose", 1);
-    path_pub = nh_.advertise<nav_msgs::Path>("IMU_trajectory",1, true);
+    imuSub = nh_->subscribe("imu/data_raw", 1, &TBLIO::imuCallback, this);
+    poseSub = nh_->subscribe("my_pose", 1, &TBLIO::poseCallback, this);
+    imuPosePublisher = nh_->advertise<geometry_msgs::PoseStamped>("imu_pose", 1);
+    path_pub = nh_->advertise<nav_msgs::Path>("IMU_trajectory",1, true);
     ros::spin();
 }

@@ -35,6 +35,7 @@
 
 #include "octree_nn.h"
 
+#include "TBLIO.h"
 
 #ifndef SRC_TREECENTERLOCALIZATION_H
 #define SRC_TREECENTERLOCALIZATION_H
@@ -151,6 +152,8 @@ public:
 
         firstTrackFlag = true;
         lastPoseOfICP.setIdentity();
+
+        TBLIO TBLIO_driver(&nh_);
     }
 
 };
