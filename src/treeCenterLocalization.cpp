@@ -87,12 +87,19 @@ bool TreeCenterLocalization::ICPwithStableMap(const sensor_msgs::PointCloud::Con
     pcl::PointCloud<pcl::PointXYZ> Final;
 
 
+    tf::Stamped<tf::Pose> temptfPose;
+    tf::poseStampedMsgToTF(TBLIO_driver.my_pose, temptfPose);
+
+    Eigen::Affine3d Aff;
+    tf::poseTFToEigen(temptfPose,Aff);
+    initialGuessOfICP = Aff.matrix().cast<float>();
+
     icp.align(Final, initialGuessOfICP);
 
     pcl::Correspondences currentCorrespondences = *icp.correspondences_;
     if(icp.hasConverged()){
         /*Use a constant velocity to generate an initial guess*/
-        posePredict(icp.getFinalTransformation(), lastPoseOfICP, initialGuessOfICP);
+        //posePredict(icp.getFinalTransformation(), lastPoseOfICP, initialGuessOfICP);
         lastPoseOfICP = icp.getFinalTransformation();
 
         //Publish TF from velodyne to map

@@ -104,7 +104,6 @@ void TBLIO::poseCallback(const geometry_msgs::PoseStampedPtr & poseMsg){
     output_time += 1.0;
     imuEmpty = true;
 
-    geometry_msgs::PoseStamped my_pose;
     my_pose.header = poseMsg->header;
     my_pose.pose.position.x = gtsam_position(0);
     my_pose.pose.position.y = -gtsam_position(1);
@@ -163,6 +162,8 @@ void TBLIO::resetOptimization()
 }
 
 TBLIO::TBLIO(ros::NodeHandle* nh){
+    if(nh == nullptr) return;
+
     nh_= nh;
     imuEmpty = true;
 

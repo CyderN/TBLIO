@@ -126,6 +126,7 @@ private:
     static void posePredict(Eigen::Matrix<float, 4, 4> tfA,
                                                 Eigen::Matrix<float, 4, 4> tfB,
                                                 Eigen::Matrix<float, 4, 4>& result);
+    TBLIO TBLIO_driver = TBLIO(nullptr);
 
 public:
     TreeCenterLocalization(){
@@ -153,7 +154,7 @@ public:
         firstTrackFlag = true;
         lastPoseOfICP.setIdentity();
 
-        TBLIO TBLIO_driver(&nh_);
+        TBLIO TBLIO_driver = TBLIO(&nh_);
     }
 
 };

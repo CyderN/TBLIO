@@ -72,6 +72,7 @@ private:
     ros::Publisher path_pub;
 
 public:
+    geometry_msgs::PoseStamped my_pose;
     TBLIO(ros::NodeHandle* nh);
 };
 
