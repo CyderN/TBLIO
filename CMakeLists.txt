@@ -41,11 +41,7 @@ INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
 INCLUDE_DIRECTORIES(${GTSAM_INCLUDE_DIR})
 
 
-add_executable(TBLIO_node src/TBLIO_node.cpp src/TBLIO.cpp src/TBLIO.h)
-target_link_libraries(TBLIO_node ${Boost_LIBRARIES} -lgtsam -ltbb)
-target_link_libraries(TBLIO_node
-        ${catkin_LIBRARIES}
-        )
+
 
 
 add_library(LO src/treeCenterLocalization.cpp src/octree_nn.cpp src/octree_nn.h)
@@ -53,6 +49,13 @@ target_link_libraries( LO ${CERES_LIBRARIES} )
 add_dependencies(LO ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(LO ${catkin_LIBRARIES})
 target_link_libraries(LO ${Boost_LIBRARIES} -lgtsam -ltbb)
+
+
+add_executable(TBLIO_node src/TBLIO_node.cpp src/TBLIO.cpp src/TBLIO.h)
+target_link_libraries(TBLIO_node ${Boost_LIBRARIES} -lgtsam -ltbb)
+target_link_libraries(TBLIO_node
+        ${catkin_LIBRARIES}
+        )
 
 ADD_EXECUTABLE(TBLIO_SLAM src/dbscan3d.cpp
         src/octree_nn.cpp src/octree_nn.h
@@ -64,7 +67,7 @@ target_link_libraries(TBLIO_SLAM ${catkin_LIBRARIES})
 
 add_executable(LO_node src/treeCenterLocalization_node.cpp src/TBLIO.cpp src/TBLIO.h)
 add_dependencies(LO_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(LO_node treeCenterLocalization)
+target_link_libraries(LO_node LO)
 target_link_libraries(LO_node ${Boost_LIBRARIES} -lgtsam -ltbb)
 target_link_libraries(LO_node ${catkin_LIBRARIES})
 

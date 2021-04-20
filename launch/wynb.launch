@@ -1,6 +1,6 @@
 <launch>
   <!--param name="use_sim_time" value="true" /-->
-  <node name="treeCenterLocalization" pkg="TBLIO" type="LO_node">
+  <node name="treeCenterLocalization" pkg="TBLIO" type="LO_node" output= "screen" >
     <param name="laser_name" type="string" value="/velodyne_TSLAM"/>
     <param name="base_link_name" type="string" value="/base_TSLAM"/>
     <param name="odom_name" type="string" value="/odom_TSLAM"/>
@@ -58,5 +58,5 @@
     </node>
 
 <!--     <node name="TBLIO_node" pkg="TBLIO" type="TBLIO_node" output="screen"/> -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find dbscan)/rviz/localization.rviz" required="true" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find TBLIO)/rviz/localization.rviz" required="true" />
 </launch>

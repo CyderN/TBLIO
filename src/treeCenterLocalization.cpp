@@ -7,11 +7,13 @@
 #include <utility>
 
 void TreeCenterLocalization::tree_callback(const sensor_msgs::PointCloud::ConstPtr& landmarkPCL){
+
+    ROS_ERROR("In calll Back");
     clock_t startTime, endTime;
     startTime = clock();//计时开始
     //if(first track) build map
     if(firstTrackFlag){
-        ROS_WARN("First Track, build map with all points.");
+        ROS_WARN("!!!!!!!First Track, build map with all points.");
         myAtlas.atlasIntializationWithPCL(*landmarkPCL, map_name);
         firstTrackFlag = false;
 
@@ -46,6 +48,25 @@ void TreeCenterLocalization::posePredict(Eigen::Matrix<float, 4, 4> tfA,
     //result = tfA * result * tfA;
     result = tfA;
     result.block<1,1>(3,2).setConstant(0);
+}
+
+
+bool smoothMove(tf::StampedTransform tfOld, tf::StampedTransform tfNew){
+    tf::Transform tfDist;
+    tfDist = tfOld * tfNew.inverse();
+    tf::Vector3 distVec = tfDist.getOrigin();
+    tf::Matrix3x3 distMat = tfDist.getBasis();
+
+    double dist = distVec.length();
+    double r,p,y;
+    distMat.getRPY(r,p,y);
+
+    if(dist > 1.0 || r > 1.0 || p > 1.0 || y> 1.5 || r < -1.0 || p < -1.0 || y < -1.5){
+        return false;
+        ROS_ERROR("Fuck! too steep!");
+    }
+    ROS_ERROR("SMOOTH!");
+    return true;
 }
 
 bool TreeCenterLocalization::ICPwithStableMap(const sensor_msgs::PointCloud::ConstPtr& landmarkPCL) {
@@ -113,29 +134,38 @@ bool TreeCenterLocalization::ICPwithStableMap(const sensor_msgs::PointCloud::Con
         Eigen::Vector3d tempTranslation = transformation.block<3,1>(0,3);
         tf::matrixEigenToTF(tempRotation, tempMat3x3);
         tf::vectorEigenToTF(tempTranslation, tempVec3);
-        velodyne_to_map.setOrigin(tempVec3);
+
+        tf::StampedTransform lastTF;
+        lastTF.setOrigin(tempVec3);
         tempMat3x3.getRotation(tempQ);
-        velodyne_to_map.setRotation(tempQ);
-        my_br.sendTransform(tf::StampedTransform(velodyne_to_map, landmarkPCL->header.stamp, map_name, lidar_name));
-        /*Publish pose*/
-        my_pose.header.frame_id = map_name;
-        my_pose.header.stamp = landmarkPCL->header.stamp;
-        my_pose.pose.position.x = velodyne_to_map.getOrigin().getX();
-        my_pose.pose.position.y = velodyne_to_map.getOrigin().getY();
-        my_pose.pose.position.z = 0;
-        tf::quaternionTFToMsg(velodyne_to_map.getRotation(), my_pose.pose.orientation);
-        my_pose_publisher.publish(my_pose);
-        /*Publish Odometry*/
-        my_odometry.pose.pose = my_pose.pose;
-        my_odometry.header = my_pose.header;
-        my_odometry_publisher.publish(my_odometry);
-        /*Publish Trajectory in Path msg*/
-
-
-        robotPath.header.stamp = landmarkPCL->header.stamp;
-        robotPath.header.frame_id = map_name;
-        robotPath.poses.push_back(my_pose);
-        path_pub.publish(robotPath);
+        lastTF.setRotation(tempQ);
+        ROS_ERROR("TOBE IF");
+        //if(smoothMove(velodyne_to_map, lastTF)){
+        if(1){
+            velodyne_to_map.setOrigin(tempVec3);
+            tempMat3x3.getRotation(tempQ);
+            velodyne_to_map.setRotation(tempQ);
+            my_br.sendTransform(tf::StampedTransform(velodyne_to_map, landmarkPCL->header.stamp, map_name, lidar_name));
+            /*Publish pose*/
+            my_pose.header.frame_id = map_name;
+            my_pose.header.stamp = landmarkPCL->header.stamp;
+            my_pose.pose.position.x = velodyne_to_map.getOrigin().getX();
+            my_pose.pose.position.y = velodyne_to_map.getOrigin().getY();
+            my_pose.pose.position.z = 0;
+            tf::quaternionTFToMsg(velodyne_to_map.getRotation(), my_pose.pose.orientation);
+            my_pose_publisher.publish(my_pose);
+            /*Publish Odometry*/
+            my_odometry.pose.pose = my_pose.pose;
+            my_odometry.header = my_pose.header;
+            my_odometry_publisher.publish(my_odometry);
+            /*Publish Trajectory in Path msg*/
+            robotPath.header.stamp = landmarkPCL->header.stamp;
+            robotPath.header.frame_id = map_name;
+            robotPath.poses.push_back(my_pose);
+            path_pub.publish(robotPath);
+        }else{
+            ROS_WARN("Violent Move!");
+        }
     }else{
         ROS_ERROR("No convergence In Stable ICP!");
         for(int i = 0; i < currentCorrespondences.size(); i++){
